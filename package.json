@@ -12,11 +12,13 @@
   "dependencies": {
     "axios": "^1.7.3",
     "canvas": "^2.11.2",
+    "cors": "^2.8.5",
     "cron": "^3.1.7",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "instagram-private-api": "^1.46.1",
     "request": "^2.88.2",
-    "request-promise": "^4.2.6"
+    "request-promise": "^4.2.6",
+    "spotify-web-api-node": "^5.0.2"
   }
 }

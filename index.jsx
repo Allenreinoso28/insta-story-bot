@@ -1,16 +1,27 @@
-require("dotenv").config();
+require('dotenv').config();
 const { IgApiClient } = require('instagram-private-api');
 const axios = require('axios');
 const { createCanvas, loadImage } = require('canvas');
 const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
+const SpotifyWebApi = require('spotify-web-api-node');
 
 // Promisify fs.readFile
 const readFileAsync = promisify(fs.readFile);
 
+// Validate environment variables
+const validateEnvVariables = () => {
+    const requiredVariables = ['IG_USERNAME', 'IG_PASSWORD', 'SPOTIFY_CLIENT_ID', 'SPOTIFY_CLIENT_SECRET'];
+    requiredVariables.forEach(variable => {
+        if (!process.env[variable]) {
+            throw new Error(`Environment variable ${variable} is not set`);
+        }
+    });
+};
+
 // Function to fetch a random quote
-async function getRandomQuote() {
+const getRandomQuote = async () => {
     try {
         const response = await axios.get('https://api.quotable.io/random');
         return {
@@ -21,10 +32,10 @@ async function getRandomQuote() {
         console.error('Error fetching quote:', error);
         throw error;
     }
-}
+};
 
 // Function to wrap text to fit within a specified width
-function wrapText(ctx, text, x, y, maxWidth, lineHeight, align = 'left') {
+const wrapText = (ctx, text, x, y, maxWidth, lineHeight, align = 'left') => {
     let words = text.split(' ');
     let line = '';
     let lines = [];
@@ -50,10 +61,10 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight, align = 'left') {
         const xPosition = align === 'right' ? x + (maxWidth - lineWidth) : x;
         ctx.fillText(line, xPosition, y + (index * lineHeight));
     });
-}
+};
 
 // Function to create an image with the quote in JPG format
-async function createImageWithQuote(quote, author) {
+const createImageWithQuote = async (quote, author, topTracks) => {
     const width = 1080;
     const height = 1920;
     const canvas = createCanvas(width, height);
@@ -62,15 +73,14 @@ async function createImageWithQuote(quote, author) {
     // Load the background image
     const backgroundImagePath = path.resolve(__dirname, 'storyBackground.png');
     const backgroundImage = await loadImage(backgroundImagePath);
-  
-     // Draw the background image
+
+    // Draw the background image
     ctx.drawImage(backgroundImage, 0, 0, width, height);
 
-
-    //title text
+    // Title text
     ctx.fillStyle = '#3b3b3b';
     ctx.font = 'bold 90px Arial';
-    ctx.fillText('have a nice day :)',70,125);
+    ctx.fillText('have a nice day :)', 70, 125);
 
     ctx.fillStyle = 'white';
     ctx.font = '75px Helvetica Neue';
@@ -92,14 +102,22 @@ async function createImageWithQuote(quote, author) {
     // Draw the author aligned to the right
     wrapText(ctx, `- ${author}`, authorTextPadding, 970, authorMaxWidth, lineHeight, 'right');
 
+    // Draw top tracks
+    ctx.font = '60px Helvetica Neue';
+    ctx.fillText('Top Tracks:', 100, 1200);
+    for (const [index, track] of topTracks.entries()) {
+        ctx.fillText(`${index + 1}. ${track.name} by ${track.artist}`, 100, 1300 + index * 100);
+        const albumCover = await loadImage(track.albumCoverUrl);
+        ctx.drawImage(albumCover, 850, 1250 + index * 100, 200, 200);
+    }
 
     const buffer = canvas.toBuffer('image/jpeg'); // Change to 'image/jpeg' for JPG format
-    
+
     // Define the absolute path for the image
     const imagePath = path.resolve(__dirname, 'quote_image.jpg');
     fs.writeFileSync(imagePath, buffer);
     return imagePath;
-}
+};
 
 // Function to upload the image to Instagram
 const uploadStory = async (imagePath) => {
@@ -110,7 +128,7 @@ const uploadStory = async (imagePath) => {
     try {
         // Read the file as a buffer
         const fileBuffer = await readFileAsync(imagePath);
-        
+
         // Upload the story
         await ig.publish.story({
             file: fileBuffer
@@ -119,10 +137,36 @@ const uploadStory = async (imagePath) => {
     } catch (error) {
         console.error('Error uploading story:', error.response ? error.response.data : error.message);
     }
-}
+};
 
-async function main() {
+// Function to fetch top tracks from Spotify
+const getTopTracks = async () => {
+    const spotifyApi = new SpotifyWebApi({
+        clientId: process.env.SPOTIFY_CLIENT_ID,
+        clientSecret: process.env.SPOTIFY_CLIENT_SECRET,
+        refreshToken: process.env.SPOTIFY_REFRESH_TOKEN
+    });
+
     try {
+        const data = await spotifyApi.refreshAccessToken();
+        spotifyApi.setAccessToken(data.body['access_token']);
+
+        const response = await spotifyApi.getMyTopTracks({ limit: 3, time_range: 'short_term' });
+        return response.body.items.map(track => ({
+            name: track.name,
+            artist: track.artists[0].name,
+            albumCoverUrl: track.album.images[1].url
+        }));
+    } catch (error) {
+        console.error('Error fetching top tracks:', error);
+        throw error;
+    }
+};
+
+const main = async () => {
+    try {
+        validateEnvVariables();
+
         // Fetch a random quote
         const { quote, author } = await getRandomQuote();
 
@@ -131,25 +175,39 @@ async function main() {
 
         // Upload the image to Instagram
         await uploadStory(imagePath);
+
+        // Fetch top tracks from Spotify
+        const topTracks = await getTopTracks();
+        console.log('Top Tracks:', topTracks);
     } catch (error) {
         console.error('Error in the main function:', error);
     }
-}
+};
 
-async function imageTest() {
+// Optional testing function
+const imageTest = async () => {
     try {
         // Fetch a random quote
         const { quote, author } = await getRandomQuote();
 
+        // fetch top tracks
+        const topTracks = await getTopTracks();
+
         // Create an image with the quote and get the absolute path
-        await createImageWithQuote(quote, author);
+        await createImageWithQuote(quote, author, topTracks);
 
         // Upload the image to Instagram
         // await uploadStory(imagePath);
     } catch (error) {
-        console.error('Error in the main function:', error);
+        console.error('Error in the imageTest function:', error);
     }
-}
+};
 
-//imageTest();
-main();
+// Uncomment for testing
+imageTest();
+
+// Run the main function
+//main();
+// const topTracks = getTopTracks();
+//         console.log('Top Tracks:', topTracks);
+

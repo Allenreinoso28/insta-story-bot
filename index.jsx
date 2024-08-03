@@ -1,7 +1,7 @@
 require("dotenv").config();
 const { IgApiClient } = require('instagram-private-api');
 const axios = require('axios');
-const { createCanvas } = require('canvas');
+const { createCanvas, loadImage } = require('canvas');
 const fs = require('fs');
 const path = require('path');
 const { promisify } = require('util');
@@ -23,6 +23,35 @@ async function getRandomQuote() {
     }
 }
 
+// Function to wrap text to fit within a specified width
+function wrapText(ctx, text, x, y, maxWidth, lineHeight, align = 'left') {
+    let words = text.split(' ');
+    let line = '';
+    let lines = [];
+
+    words.forEach((word) => {
+        let testLine = line + word + ' ';
+        let metrics = ctx.measureText(testLine);
+        let testWidth = metrics.width;
+
+        if (testWidth > maxWidth && line !== '') {
+            lines.push(line);
+            line = word + ' ';
+        } else {
+            line = testLine;
+        }
+    });
+
+    lines.push(line);
+
+    // Draw each line of text
+    lines.forEach((line, index) => {
+        const lineWidth = ctx.measureText(line).width;
+        const xPosition = align === 'right' ? x + (maxWidth - lineWidth) : x;
+        ctx.fillText(line, xPosition, y + (index * lineHeight));
+    });
+}
+
 // Function to create an image with the quote in JPG format
 async function createImageWithQuote(quote, author) {
     const width = 1080;
@@ -30,13 +59,39 @@ async function createImageWithQuote(quote, author) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
 
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, width, height);
+    // Load the background image
+    const backgroundImagePath = path.resolve(__dirname, 'storyBackground.png');
+    const backgroundImage = await loadImage(backgroundImagePath);
+  
+     // Draw the background image
+    ctx.drawImage(backgroundImage, 0, 0, width, height);
 
-    ctx.fillStyle = 'black';
-    ctx.font = '48px Arial';
-    ctx.fillText(`"${quote}"`, 50, 100);
-    ctx.fillText(`- ${author}`, 50, 200);
+
+    //title text
+    ctx.fillStyle = '#3b3b3b';
+    ctx.font = 'bold 90px Arial';
+    ctx.fillText('have a nice day :)',70,125);
+
+    ctx.fillStyle = 'white';
+    ctx.font = '75px Helvetica Neue';
+
+    // Define maximum width for text wrapping
+    const maxWidth = width - 200; // 100px padding on each side
+    const lineHeight = 80; // Adjust line height as needed
+
+    // Wrap and draw the quote
+    wrapText(ctx, `"${quote}"`, 100, 300, maxWidth, lineHeight, 'left');
+
+    // Draw the author
+    ctx.font = '70px Helvetica Neue'; // Adjust font size for author if needed
+
+    // Calculate starting x-position for right-aligned text
+    const authorTextPadding = 70; // Padding from the right edge
+    const authorMaxWidth = width - authorTextPadding * 2;
+
+    // Draw the author aligned to the right
+    wrapText(ctx, `- ${author}`, authorTextPadding, 970, authorMaxWidth, lineHeight, 'right');
+
 
     const buffer = canvas.toBuffer('image/jpeg'); // Change to 'image/jpeg' for JPG format
     
@@ -81,4 +136,20 @@ async function main() {
     }
 }
 
+async function imageTest() {
+    try {
+        // Fetch a random quote
+        const { quote, author } = await getRandomQuote();
+
+        // Create an image with the quote and get the absolute path
+        await createImageWithQuote(quote, author);
+
+        // Upload the image to Instagram
+        // await uploadStory(imagePath);
+    } catch (error) {
+        console.error('Error in the main function:', error);
+    }
+}
+
+//imageTest();
 main();

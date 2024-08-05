@@ -83,7 +83,7 @@ const createImageWithQuote = async (quote, author, topTracks) => {
     ctx.fillText('have a nice day :)', 70, 125);
 
     ctx.fillStyle = 'white';
-    ctx.font = '75px Helvetica Neue';
+    ctx.font = '75px Arial';
 
     // Define maximum width for text wrapping
     const maxWidth = width - 200; // 100px padding on each side
@@ -93,7 +93,7 @@ const createImageWithQuote = async (quote, author, topTracks) => {
     wrapText(ctx, `"${quote}"`, 100, 300, maxWidth, lineHeight, 'left');
 
     // Draw the author
-    ctx.font = '70px Helvetica Neue'; // Adjust font size for author if needed
+    ctx.font = '70px Arial'; // Adjust font size for author if needed
 
     // Calculate starting x-position for right-aligned text
     const authorTextPadding = 70; // Padding from the right edge
@@ -102,14 +102,40 @@ const createImageWithQuote = async (quote, author, topTracks) => {
     // Draw the author aligned to the right
     wrapText(ctx, `- ${author}`, authorTextPadding, 970, authorMaxWidth, lineHeight, 'right');
 
-    // Draw top tracks
-    ctx.font = '60px Helvetica Neue';
-    ctx.fillText('Top Tracks:', 100, 1200);
-    for (const [index, track] of topTracks.entries()) {
-        ctx.fillText(`${index + 1}. ${track.name} by ${track.artist}`, 100, 1300 + index * 100);
-        const albumCover = await loadImage(track.albumCoverUrl);
-        ctx.drawImage(albumCover, 850, 1250 + index * 100, 200, 200);
-    }
+
+    // Draw numbers
+    ctx.fillStyle = '#3b3b3b';
+    ctx.font = 'bold 80px Arial';
+    ctx.fillText('1.', 35, 1240);
+    ctx.fillText('2.', 35, 1505);
+    ctx.fillText('3.', 35, 1770);
+
+    console.log(topTracks[0].name)
+
+    // Draw AlbumCovers
+    const albumCover0 = await loadImage(topTracks[0].albumCoverUrl);
+    ctx.drawImage(albumCover0, 120, 1110, 200, 200);
+    const albumCover1 = await loadImage(topTracks[1].albumCoverUrl);
+    ctx.drawImage(albumCover1, 120, 1380, 200, 200);
+    const albumCover2 = await loadImage(topTracks[2].albumCoverUrl);
+    ctx.drawImage(albumCover2, 120, 1650, 200, 200);
+
+
+    // Draw Song Names
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 50px Arial';
+    wrapText(ctx, topTracks[0].name, 370, 1160, 620, 60, 'left');
+    wrapText(ctx, topTracks[1].name, 370, 1430, 620, 60, 'left');
+    wrapText(ctx, topTracks[2].name, 370, 1700, 620, 60, 'left');
+    
+    // Draw Album Artist
+    ctx.fillStyle = '#7A7A7A';
+    ctx.font = 'bold 50px Arial';
+    wrapText(ctx, `- ${topTracks[0].artist}`, 350, 1300, 620, 60, 'right');
+    wrapText(ctx, `- ${topTracks[1].artist}`, 350, 1570, 620, 60, 'right');
+    wrapText(ctx, `- ${topTracks[2].artist}`, 350, 1840, 620, 60, 'right');
+
+
 
     const buffer = canvas.toBuffer('image/jpeg'); // Change to 'image/jpeg' for JPG format
 
@@ -170,15 +196,15 @@ const main = async () => {
         // Fetch a random quote
         const { quote, author } = await getRandomQuote();
 
+        // fetch top tracks
+        const topTracks = await getTopTracks();
+
         // Create an image with the quote and get the absolute path
-        const imagePath = await createImageWithQuote(quote, author);
+        const imagePath = await createImageWithQuote(quote, author, topTracks);
 
         // Upload the image to Instagram
         await uploadStory(imagePath);
 
-        // Fetch top tracks from Spotify
-        const topTracks = await getTopTracks();
-        console.log('Top Tracks:', topTracks);
     } catch (error) {
         console.error('Error in the main function:', error);
     }
@@ -192,6 +218,7 @@ const imageTest = async () => {
 
         // fetch top tracks
         const topTracks = await getTopTracks();
+        // console.log(topTracks);
 
         // Create an image with the quote and get the absolute path
         await createImageWithQuote(quote, author, topTracks);
@@ -204,10 +231,10 @@ const imageTest = async () => {
 };
 
 // Uncomment for testing
-imageTest();
+// imageTest();
 
 // Run the main function
-//main();
+main();
 // const topTracks = getTopTracks();
 //         console.log('Top Tracks:', topTracks);
 

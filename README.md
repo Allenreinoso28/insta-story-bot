@@ -2,7 +2,8 @@
 
 This application periodically uploads stories to Instagram, using the Spotify API to retrieve a user's top tracks and construct an image for the story. It also integrates a Quotes API to add a random inspirational quote to each post. Future updates aim to expand content with additional APIs.
 ## Screenshot
-![Inspirational Quote](./quote_image.jpg)
+
+<img src="./quote_image.jpg" alt="Inspirational Quote" width="400" />
 
 ## Features
 - Automated Instagram story uploads

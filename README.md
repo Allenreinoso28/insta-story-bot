@@ -15,11 +15,16 @@ This application periodically uploads stories to Instagram, using the Spotify AP
 ### Install dependencies:
   npm install
 ### Usage
-  create .env file with following format
+  create .env file with following format:
+  
   IG_USERNAME=""
+  
   IG_PASSWORD=""
+  
   SPOTIFY_CLIENT_ID=""
+  
   SPOTIFY_CLIENT_SECRET=""
+  
   SPOTIFY_REFRESH_TOKEN=""
   
   npm start
